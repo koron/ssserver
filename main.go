@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"time"
@@ -73,17 +74,28 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 	}
 }
 
-func openPage(d *agouti.WebDriver, url string, w, h int) (*agouti.Page, error) {
+func openPage(d *agouti.WebDriver, uri string, w, h int) (*agouti.Page, error) {
 	args := []string{
 		"headless",
 		"disable-gpu",
 		fmt.Sprintf("window-size=%d,%d", w, h),
 	}
+	proxy := os.Getenv("HTTP_PROXY")
+	if proxy != "" {
+		if u, err := url.Parse(proxy); err == nil {
+			args = append(args, "--proxy-server="+u.Host)
+			if u.User != nil {
+				args = append(args, "--proxy-auth="+u.User.String())
+			}
+		} else {
+			args = append(args, "--proxy-server="+proxy)
+		}
+	}
 	p, err := d.NewPage(agouti.ChromeOptions("args", args))
 	if err != nil {
 		return nil, err
 	}
-	err = p.Navigate(url)
+	err = p.Navigate(uri)
 	if err != nil {
 		p.Destroy()
 		return nil, err
