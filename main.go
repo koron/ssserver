@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/sclevine/agouti"
@@ -66,26 +68,62 @@ func serve(addr string) error {
 	return http.ListenAndServe(addr, newHandler(d))
 }
 
+type openParams struct {
+	url    string
+	width  int
+	height int
+	wait   time.Duration
+}
+
+func newOpenParams(v url.Values) (*openParams, error) {
+	p := &openParams{
+		width:  1024,
+		height: 768,
+		wait:   0 * time.Second,
+	}
+	if p.url = v.Get("u"); p.url == "" {
+		return nil, errors.New("u (url) must not be empty")
+	}
+	if s := v.Get("w"); s != "" {
+		w, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("w (width) has error: %v", err)
+		}
+		p.width = w
+	}
+	if s := v.Get("h"); s != "" {
+		h, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("h (height) has error: %v", err)
+		}
+		p.height = h
+	}
+	if s := v.Get("wait"); s != "" {
+		wait, err := time.ParseDuration(s)
+		if err != nil {
+			return nil, fmt.Errorf("wait has error: %v", err)
+		}
+		p.wait = wait
+	}
+	return p, nil
+}
+
 func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u := r.URL.Path
-		for u[0] == '/' {
-			u = u[1:]
-		}
-		sw := 1024
-		sh := 768
-		dur := 0 * time.Second
-		p, err := openPage(d, u, sw, sh)
+		p, err := newOpenParams(r.URL.Query())
 		if err != nil {
-			log.Printf("failed to open %q: %v", u, err)
+			log.Printf("parameter error: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page, err := openPage(d, p)
+		if err != nil {
+			log.Printf("failed to open %q: %v", p.url, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer p.Destroy()
-		if dur > 0 {
-			time.Sleep(dur)
-		}
-		b, err := p.Session().GetScreenshot()
+		defer page.Destroy()
+		b, err := page.Session().GetScreenshot()
 		if err != nil {
 			log.Printf("failed to GetScreenShot: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -104,20 +142,23 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 	}
 }
 
-func openPage(d *agouti.WebDriver, uri string, w, h int) (*agouti.Page, error) {
+func openPage(d *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 	args := make([]string, 0, len(coreArgs)+4)
 	args = append(args, coreArgs...)
-	args = append(args, fmt.Sprintf("window-size=%d,%d", w, h))
-	p, err := d.NewPage(agouti.ChromeOptions("args", args))
+	args = append(args, fmt.Sprintf("window-size=%d,%d", p.width, p.height))
+	page, err := d.NewPage(agouti.ChromeOptions("args", args))
 	if err != nil {
 		return nil, err
 	}
-	err = p.Navigate(uri)
+	err = page.Navigate(p.url)
 	if err != nil {
-		p.Destroy()
+		page.Destroy()
 		return nil, err
 	}
-	return p, nil
+	if p.wait > 0 {
+		time.Sleep(p.wait)
+	}
+	return page, nil
 }
 
 func main() {
