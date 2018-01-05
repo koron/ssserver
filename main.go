@@ -69,10 +69,12 @@ func serve(addr string) error {
 }
 
 type openParams struct {
-	url    string
-	width  int
-	height int
-	wait   time.Duration
+	url     string
+	width   int
+	height  int
+	scrollX int
+	scrollY int
+	wait    time.Duration
 }
 
 func newOpenParams(v url.Values) (*openParams, error) {
@@ -97,6 +99,20 @@ func newOpenParams(v url.Values) (*openParams, error) {
 			return nil, fmt.Errorf("h (height) has error: %v", err)
 		}
 		p.height = h
+	}
+	if s := v.Get("sX"); s != "" {
+		sx, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("sX (scrollX) has error: %v", err)
+		}
+		p.scrollX = sx
+	}
+	if s := v.Get("sY"); s != "" {
+		sy, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("sY (scrollY) has error: %v", err)
+		}
+		p.scrollY = sy
 	}
 	if s := v.Get("wait"); s != "" {
 		wait, err := time.ParseDuration(s)
@@ -157,6 +173,12 @@ func openPage(d *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 	}
 	if p.wait > 0 {
 		time.Sleep(p.wait)
+	}
+	if p.scrollX != 0 || p.scrollY != 0 {
+		page.RunScript("window.scrollBy(x, y)", map[string]interface{}{
+			"x": p.scrollX,
+			"y": p.scrollY,
+		}, nil)
 	}
 	return page, nil
 }
