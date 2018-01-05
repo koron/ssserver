@@ -12,7 +12,37 @@ import (
 	"github.com/sclevine/agouti"
 )
 
+var coreArgs []string
+
+func init() {
+	coreArgs = make([]string, 0, 4)
+	coreArgs = append(coreArgs,
+		"headless",
+		"disable-gpu",
+	)
+}
+
+func setupProxy() error {
+	s, ok := os.LookupEnv("HTTP_PROXY")
+	if !ok {
+		return nil
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return err
+	}
+	coreArgs = append(coreArgs, "proxy-server="+u.Host)
+	if u.User != nil {
+		coreArgs = append(coreArgs, "proxy-auth="+u.User.String())
+	}
+	return nil
+}
+
 func serve(addr string) error {
+	if err := setupProxy(); err != nil {
+		return err
+	}
+
 	d := agouti.ChromeDriver()
 	err := d.Start()
 	if err != nil {
@@ -75,22 +105,9 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 }
 
 func openPage(d *agouti.WebDriver, uri string, w, h int) (*agouti.Page, error) {
-	args := []string{
-		"headless",
-		"disable-gpu",
-		fmt.Sprintf("window-size=%d,%d", w, h),
-	}
-	proxy := os.Getenv("HTTP_PROXY")
-	if proxy != "" {
-		if u, err := url.Parse(proxy); err == nil {
-			args = append(args, "--proxy-server="+u.Host)
-			if u.User != nil {
-				args = append(args, "--proxy-auth="+u.User.String())
-			}
-		} else {
-			args = append(args, "--proxy-server="+proxy)
-		}
-	}
+	args := make([]string, 0, len(coreArgs)+4)
+	args = append(args, coreArgs...)
+	args = append(args, fmt.Sprintf("window-size=%d,%d", w, h))
 	p, err := d.NewPage(agouti.ChromeOptions("args", args))
 	if err != nil {
 		return nil, err
