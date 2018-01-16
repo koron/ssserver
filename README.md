@@ -1,10 +1,14 @@
 # Web screenshot server
 
+Install the command.
+
+    $ go get -u github.com/koron/ssserver
+
 Start the server, it listen 3000 on localhost.
 
-    $ go run
+    $ ssserver
 
-Request from other console
+Request from other terminal or console
 
     $ curl -v http://127.0.0.1:3000/?u=https://www.kaoriya.net/ -o kaoriya.png
     $ curl -v http://127.0.0.1:3000/?u=http://tokyo-ame.jwa.or.jp/ -o ame.png
@@ -26,6 +30,13 @@ Name        |Description
 `wait`      |Wait before take a screenshot (default: 0, see [Duration][dur])
 `sX`        |Scroll offset X (default: 0)
 `sY`        |Scroll offset Y (default: 0)
+`full`      |Full page screenshot. Ignore `h`, `sX` and `sY` when set.
+
+## Examples
+
+Full page screen shot:
+
+    $ curl -v 'http://127.0.0.1:3000/?u=https://www.kaoriya.net/&full' -o kaoriya-full.png
 
 [browser]:https://www.google.com/chrome/browser/desktop/index.html
 [driver]:https://sites.google.com/a/chromium.org/chromedriver/downloads

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/draw"
+	"image/png"
 	"log"
 	"net/http"
 	"net/url"
@@ -21,6 +25,7 @@ func init() {
 	coreArgs = append(coreArgs,
 		"headless",
 		"disable-gpu",
+		"hide-scrollbars",
 	)
 }
 
@@ -75,6 +80,7 @@ type openParams struct {
 	scrollX int
 	scrollY int
 	wait    time.Duration
+	full    bool
 }
 
 func newOpenParams(v url.Values) (*openParams, error) {
@@ -121,7 +127,58 @@ func newOpenParams(v url.Values) (*openParams, error) {
 		}
 		p.wait = wait
 	}
+	if _, ok := v["full"]; ok {
+		p.full = true
+	}
 	return p, nil
+}
+
+func scrollTo(page *agouti.Page, x, y int) error {
+	if x == 0 && y == 0 {
+		return nil
+	}
+	return page.RunScript("window.scrollTo(x, y)", map[string]interface{}{
+		"x": x,
+		"y": y,
+	}, nil)
+}
+
+func getScreenshot(page *agouti.Page, full bool) ([]byte, error) {
+	if !full {
+		return page.Session().GetScreenshot()
+	}
+	var v []int
+	err := page.RunScript(`return [window.innerWidth, window.innerHeight, window.document.body.clientHeight]`, nil, &v)
+	if err != nil {
+		return nil, err
+	}
+	w, dy, h := v[0], v[1], v[2]
+	dst := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y += dy {
+		if y+dy > h {
+			y = h - dy
+		}
+		err := scrollTo(page, 0, y)
+		if err != nil {
+			return nil, err
+		}
+		b, err := page.Session().GetScreenshot()
+		if err != nil {
+			return nil, err
+		}
+		// concatenate screenshots.
+		img, err := png.Decode(bytes.NewReader(b))
+		if err != nil {
+			return nil, err
+		}
+		draw.Draw(dst, image.Rect(0, y, w, y+dy), img, image.Pt(0, 0), draw.Src)
+	}
+	bb := &bytes.Buffer{}
+	err = png.Encode(bb, dst)
+	if err != nil {
+		return nil, err
+	}
+	return bb.Bytes(), nil
 }
 
 func newHandler(d *agouti.WebDriver) http.HandlerFunc {
@@ -139,9 +196,9 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 			return
 		}
 		defer page.Destroy()
-		b, err := page.Session().GetScreenshot()
+		b, err := getScreenshot(page, p.full)
 		if err != nil {
-			log.Printf("failed to GetScreenShot: %v", err)
+			log.Printf("failed to get screenshot: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -174,11 +231,8 @@ func openPage(d *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 	if p.wait > 0 {
 		time.Sleep(p.wait)
 	}
-	if p.scrollX != 0 || p.scrollY != 0 {
-		page.RunScript("window.scrollBy(x, y)", map[string]interface{}{
-			"x": p.scrollX,
-			"y": p.scrollY,
-		}, nil)
+	if !p.full {
+		scrollTo(page, p.scrollX, p.scrollY)
 	}
 	return page, nil
 }
