@@ -4,21 +4,25 @@ Install the command.
 
     $ go get -u github.com/koron/ssserver
 
-Start the server, it listen 3000 on localhost.
+Assure to install Chrome and Chrome driver.
+
+Then start the server, it listen 3000 on localhost.
 
     $ ssserver
 
-Request from other terminal or console
+Run these command from other terminal or console to obtain screenshots.
 
     $ curl -v http://127.0.0.1:3000/?u=https://www.kaoriya.net/ -o kaoriya.png
     $ curl -v http://127.0.0.1:3000/?u=http://tokyo-ame.jwa.or.jp/ -o ame.png
 
 ## Requirements
 
+These tools are required to make ssserver work correctly.
+
 *   [Chrome browser][browser]
 *   [Chrome driver][driver]
 
-    Install the driver to anywhere in your PATH.
+Install those to anywhere in you PATH environment variable.
 
 ## Request Parameters
 
@@ -31,6 +35,12 @@ Name        |Description
 `sX`        |Scroll offset X (default: 0)
 `sY`        |Scroll offset Y (default: 0)
 `full`      |Full page screenshot. Ignore `h`, `sX` and `sY` when set.
+
+## Options
+
+Name        |Description
+------------|---------------------------------------------------------------
+`-addr`     |Server listen address (default: ":3000")
 
 ## Examples
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"image"
 	"image/draw"
@@ -238,7 +239,12 @@ func openPage(d *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 }
 
 func main() {
-	err := serve(":3000")
+	var (
+		addr string
+	)
+	flag.StringVar(&addr, "addr", ":3000", "server listen address")
+	flag.Parse()
+	err := serve(addr)
 	if err != nil {
 		log.Fatal("ssserve failure: %v", err)
 	}
