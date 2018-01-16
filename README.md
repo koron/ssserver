@@ -44,7 +44,7 @@ Name        |Description
 
 ## Examples
 
-Full page screen shot:
+Full page screenshot:
 
     $ curl -v 'http://127.0.0.1:3000/?u=https://www.kaoriya.net/&full' -o kaoriya-full.png
 
