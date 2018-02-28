@@ -35,6 +35,7 @@ Name        |Description
 `sX`        |Scroll offset X (default: 0)
 `sY`        |Scroll offset Y (default: 0)
 `full`      |Full page screenshot. Ignore `h`, `sX` and `sY` when set.
+`save`      |Show save as dialog in browser.  Imply `Content-Disposition: attachment`
 
 ## Options
 

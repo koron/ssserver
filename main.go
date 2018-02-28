@@ -82,6 +82,7 @@ type openParams struct {
 	scrollY int
 	wait    time.Duration
 	full    bool
+	save    bool
 }
 
 func newOpenParams(v url.Values) (*openParams, error) {
@@ -130,6 +131,9 @@ func newOpenParams(v url.Values) (*openParams, error) {
 	}
 	if _, ok := v["full"]; ok {
 		p.full = true
+	}
+	if _, ok := v["save"]; ok {
+		p.save = true
 	}
 	return p, nil
 }
@@ -203,7 +207,11 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Add("Content-Disposition", "attachment")
+		if p.save {
+			w.Header().Add("Content-Disposition", "attachment")
+		} else {
+			w.Header().Add("Content-Disposition", "inline")
+		}
 		w.WriteHeader(http.StatusOK)
 		for len(b) > 0 {
 			n, err := w.Write(b)
