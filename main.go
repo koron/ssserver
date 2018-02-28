@@ -51,8 +51,8 @@ func serve(addr string) error {
 		return err
 	}
 
-	d := agouti.ChromeDriver()
-	err := d.Start()
+	drv := agouti.ChromeDriver()
+	err := drv.Start()
 	if err != nil {
 		return err
 	}
@@ -66,12 +66,12 @@ func serve(addr string) error {
 			}
 		}
 		signal.Stop(sig)
-		d.Stop()
+		drv.Stop()
 		os.Exit(0)
 	}()
 	signal.Notify(sig, os.Interrupt)
 
-	return http.ListenAndServe(addr, newHandler(d))
+	return http.ListenAndServe(addr, newHandler(drv))
 }
 
 type openParams struct {
@@ -186,7 +186,7 @@ func getScreenshot(page *agouti.Page, full bool) ([]byte, error) {
 	return bb.Bytes(), nil
 }
 
-func newHandler(d *agouti.WebDriver) http.HandlerFunc {
+func newHandler(drv *agouti.WebDriver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, err := newOpenParams(r.URL.Query())
 		if err != nil {
@@ -194,7 +194,7 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		page, err := openPage(d, p)
+		page, err := openPage(drv, p)
 		if err != nil {
 			log.Printf("failed to open %q: %v", p.url, err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -224,11 +224,11 @@ func newHandler(d *agouti.WebDriver) http.HandlerFunc {
 	}
 }
 
-func openPage(d *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
+func openPage(drv *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 	args := make([]string, 0, len(coreArgs)+4)
 	args = append(args, coreArgs...)
 	args = append(args, fmt.Sprintf("window-size=%d,%d", p.width, p.height))
-	page, err := d.NewPage(agouti.ChromeOptions("args", args))
+	page, err := drv.NewPage(agouti.ChromeOptions("args", args))
 	if err != nil {
 		return nil, err
 	}
