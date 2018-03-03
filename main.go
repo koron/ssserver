@@ -51,11 +51,12 @@ func serve(addr string) error {
 		return err
 	}
 
-	drv := agouti.ChromeDriver()
+	drv := agouti.ChromeDriver(agouti.ChromeOptions("args", coreArgs))
 	err := drv.Start()
 	if err != nil {
 		return err
 	}
+	pool := NewPool(drv, maxPages)
 
 	sig := make(chan os.Signal, 1)
 	go func() {
@@ -66,12 +67,13 @@ func serve(addr string) error {
 			}
 		}
 		signal.Stop(sig)
+		pool.Close()
 		drv.Stop()
 		os.Exit(0)
 	}()
 	signal.Notify(sig, os.Interrupt)
 
-	return http.ListenAndServe(addr, newHandler(drv))
+	return http.ListenAndServe(addr, newHandler(pool))
 }
 
 type openParams struct {
@@ -186,7 +188,7 @@ func getScreenshot(page *agouti.Page, full bool) ([]byte, error) {
 	return bb.Bytes(), nil
 }
 
-func newHandler(drv *agouti.WebDriver) http.HandlerFunc {
+func newHandler(pool *PagePool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, err := newOpenParams(r.URL.Query())
 		if err != nil {
@@ -194,13 +196,13 @@ func newHandler(drv *agouti.WebDriver) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		page, err := openPage(drv, p)
+		page, err := openPage(pool, p)
 		if err != nil {
 			log.Printf("failed to open %q: %v", p.url, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer page.Destroy()
+		defer pool.Put(page)
 		b, err := getScreenshot(page, p.full)
 		if err != nil {
 			log.Printf("failed to get screenshot: %v", err)
@@ -224,17 +226,15 @@ func newHandler(drv *agouti.WebDriver) http.HandlerFunc {
 	}
 }
 
-func openPage(drv *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
-	args := make([]string, 0, len(coreArgs)+4)
-	args = append(args, coreArgs...)
-	args = append(args, fmt.Sprintf("window-size=%d,%d", p.width, p.height))
-	page, err := drv.NewPage(agouti.ChromeOptions("args", args))
+func openPage(pool *PagePool, p *openParams) (*agouti.Page, error) {
+	page, err := pool.Get()
 	if err != nil {
 		return nil, err
 	}
+	page.Size(p.width, p.height)
 	err = page.Navigate(p.url)
 	if err != nil {
-		page.Destroy()
+		pool.Put(page)
 		return nil, err
 	}
 	if p.wait > 0 {
@@ -246,11 +246,14 @@ func openPage(drv *agouti.WebDriver, p *openParams) (*agouti.Page, error) {
 	return page, nil
 }
 
+var maxPages int
+
 func main() {
 	var (
 		addr string
 	)
 	flag.StringVar(&addr, "addr", ":3000", "server listen address")
+	flag.IntVar(&maxPages, "maxpages", 4, "max num of pages")
 	flag.Parse()
 	err := serve(addr)
 	if err != nil {
