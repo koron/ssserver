@@ -6,48 +6,34 @@ import (
 	"sync"
 
 	"github.com/sclevine/agouti"
-	"golang.org/x/sync/semaphore"
 )
 
 // Closed is the error returned by Get when the PagePool is closed already.
 var Closed = errors.New("page pool is closed")
 
+type pageEntry struct {
+	u bool
+	p *agouti.Page
+}
+
 // PagePool is a pool for *agouti.Page
 type PagePool struct {
 	drv   *agouti.WebDriver
-	max   int64
+	max   int
 	c     *sync.Cond
-	sem   *semaphore.Weighted
-	pool  *sync.Pool
-	pages []*agouti.Page
+	pages []*pageEntry
 	err   error
 }
 
 // NewPool creates a page pool with driver.
 func NewPool(drv *agouti.WebDriver, max int) *PagePool {
 	pp := &PagePool{
-		drv: drv,
-		max: int64(max),
-		c:   sync.NewCond(&sync.Mutex{}),
-		sem: semaphore.NewWeighted(int64(max)),
+		drv:   drv,
+		max:   max,
+		c:     sync.NewCond(&sync.Mutex{}),
+		pages: make([]*pageEntry, 0, 4),
 	}
-	pp.pool = &sync.Pool{New: pp.newPage}
 	return pp
-}
-
-type newPage struct {
-	p   *agouti.Page
-	err error
-}
-
-func (pp *PagePool) newPage() interface{} {
-	page, err := pp.drv.NewPage()
-	if err != nil {
-		return &newPage{err: err}
-	}
-	pp.pages = append(pp.pages, page)
-	log.Printf("page allocated: %d", len(pp.pages))
-	return &newPage{p: page}
 }
 
 // Get returns a page can be used.  After finished to use, return with Put
@@ -57,17 +43,25 @@ func (pp *PagePool) Get() (*agouti.Page, error) {
 		return nil, pp.err
 	}
 	pp.c.L.Lock()
-	for !pp.sem.TryAcquire(1) {
+	for pp.activePage() == pp.max {
 		pp.c.Wait()
 	}
 	defer pp.c.L.Unlock()
 
-	r := pp.pool.Get().(*newPage)
-	if r.err != nil {
-		return nil, r.err
+	pe, n := pp.freePage()
+	if pe != nil {
+		pe.u = true
+		log.Printf("PagePool.Get: cached #%d", n)
+		return pe.p, nil
 	}
-	log.Printf("current pages: %d", len(pp.pages))
-	return r.p, nil
+	p, err := pp.drv.NewPage()
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("PagePool.Get: allocated #%d", len(pp.pages))
+	pe = &pageEntry{p: p, u: true}
+	pp.pages = append(pp.pages, pe)
+	return pe.p, nil
 }
 
 // Put releases back a page to the pool.
@@ -75,24 +69,51 @@ func (pp *PagePool) Put(p *agouti.Page) {
 	pp.c.L.Lock()
 	defer pp.c.L.Unlock()
 
-	pp.pool.Put(&newPage{p: p})
-	pp.sem.Release(1)
-	pp.c.Broadcast()
-	log.Printf("page is returned")
+	for i, pe := range pp.pages {
+		if pe.p == p {
+			pe.u = false
+			log.Printf("PagePool.Put: released #%d", i)
+			pp.c.Broadcast()
+			return
+		}
+	}
+
+	log.Print("PagePool.Put: unmanaged page")
+}
+
+func (pp *PagePool) freePage() (*pageEntry, int) {
+	for i, pe := range pp.pages {
+		if !pe.u {
+			return pe, i
+		}
+	}
+	return nil, -1
+}
+
+func (pp *PagePool) activePage() int {
+	n := 0
+	for _, p := range pp.pages {
+		if p.u {
+			n++
+		}
+	}
+	return n
 }
 
 // Close closes all pages and finish the pool.
 func (pp *PagePool) Close() {
+	log.Printf("PagePool.Close: waiting")
 	pp.c.L.Lock()
 	pp.err = Closed
-	for !pp.sem.TryAcquire(pp.max) {
+	for pp.activePage() != 0 {
 		pp.c.Wait()
 	}
 	defer pp.c.L.Unlock()
+	log.Printf("PagePool.Close: closing")
 
-	for _, p := range pp.pages {
-		p.Destroy()
+	for _, pe := range pp.pages {
+		pe.p.Destroy()
 	}
 	pp.pages = nil
-	pp.sem.Release(pp.max)
+	log.Printf("PagePool.Close: closed")
 }
