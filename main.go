@@ -19,17 +19,6 @@ import (
 	"github.com/sclevine/agouti"
 )
 
-var coreArgs []string
-
-func init() {
-	coreArgs = make([]string, 0, 4)
-	coreArgs = append(coreArgs,
-		"headless",
-		"disable-gpu",
-		"hide-scrollbars",
-	)
-}
-
 func setupProxy() error {
 	s, ok := os.LookupEnv("HTTP_PROXY")
 	if !ok {
@@ -39,10 +28,12 @@ func setupProxy() error {
 	if err != nil {
 		return err
 	}
-	coreArgs = append(coreArgs, "proxy-server="+u.Host)
+
+	chromeArgs = append(chromeArgs, "proxy-server="+u.Host)
 	if u.User != nil {
-		coreArgs = append(coreArgs, "proxy-auth="+u.User.String())
+		chromeArgs = append(chromeArgs, "proxy-auth="+u.User.String())
 	}
+	// FIXME: setup proxy for firefox
 	return nil
 }
 
@@ -51,8 +42,11 @@ func serve(addr string) error {
 		return err
 	}
 
-	drv := agouti.ChromeDriver(agouti.ChromeOptions("args", coreArgs))
-	err := drv.Start()
+	drv, err := newWebDriver()
+	if err != nil {
+		return err
+	}
+	err = drv.Start()
 	if err != nil {
 		return err
 	}
@@ -254,6 +248,7 @@ func main() {
 		verbose bool
 	)
 	flag.StringVar(&addr, "addr", ":3000", "server listen address")
+	flag.StringVar(&driverName, "driver", "chrome", "web driver name")
 	flag.IntVar(&maxPages, "maxpages", 4, "max num of pages")
 	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.Parse()
@@ -262,6 +257,6 @@ func main() {
 	}
 	err := serve(addr)
 	if err != nil {
-		log.Fatal("ssserve failure: %v", err)
+		log.Fatalf("ssserve failure: %s", err)
 	}
 }

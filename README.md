@@ -19,8 +19,11 @@ Run these command from other terminal or console to obtain screenshots.
 
 These tools are required to make ssserver work correctly.
 
-*   [Chrome browser][browser]
-*   [Chrome driver][driver]
+*   for Chrome
+    *   [Chrome browser][chrome_browser]
+    *   [Chrome driver][chrome_driver]
+*   for Firefox (WIP: with many problems)
+    *   [Firefox driver][firefox_driver]
 
 Install those to anywhere in you PATH environment variable.
 
@@ -49,6 +52,7 @@ Full page screenshot:
 
     $ curl -v 'http://127.0.0.1:3000/?u=https://www.kaoriya.net/&full' -o kaoriya-full.png
 
-[browser]:https://www.google.com/chrome/browser/desktop/index.html
-[driver]:https://sites.google.com/a/chromium.org/chromedriver/downloads
+[chrome_browser]:https://www.google.com/chrome/browser/desktop/index.html
+[chrome_driver]:https://sites.google.com/a/chromium.org/chromedriver/downloads
+[firefox_driver]:https://github.com/mozilla/geckodriver/releases
 [dur]:https://golang.org/pkg/time/#ParseDuration
