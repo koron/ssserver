@@ -192,20 +192,20 @@ func newHandler(pool *PagePool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, err := newOpenParams(r.URL.Query())
 		if err != nil {
-			log.Printf("parameter error: %v", err)
+			warnf("parameter error: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		page, err := openPage(pool, p)
 		if err != nil {
-			log.Printf("failed to open %q: %v", p.url, err)
+			warnf("failed to open %q: %v", p.url, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		defer pool.Put(page)
 		b, err := getScreenshot(page, p.full)
 		if err != nil {
-			log.Printf("failed to get screenshot: %v", err)
+			warnf("failed to get screenshot: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -218,7 +218,7 @@ func newHandler(pool *PagePool) http.HandlerFunc {
 		for len(b) > 0 {
 			n, err := w.Write(b)
 			if err != nil {
-				log.Printf("failed to Write: %v", err)
+				warnf("failed to Write: %v", err)
 				break
 			}
 			b = b[n:]
@@ -250,11 +250,16 @@ var maxPages int
 
 func main() {
 	var (
-		addr string
+		addr    string
+		verbose bool
 	)
 	flag.StringVar(&addr, "addr", ":3000", "server listen address")
 	flag.IntVar(&maxPages, "maxpages", 4, "max num of pages")
+	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.Parse()
+	if verbose {
+		infoL = log.New(os.Stdout, "", log.LstdFlags)
+	}
 	err := serve(addr)
 	if err != nil {
 		log.Fatal("ssserve failure: %v", err)

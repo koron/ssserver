@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/sclevine/agouti"
@@ -51,14 +50,14 @@ func (pp *PagePool) Get() (*agouti.Page, error) {
 	pe, n := pp.freePage()
 	if pe != nil {
 		pe.u = true
-		log.Printf("PagePool.Get: cached #%d", n)
+		infof("PagePool.Get: cached #%d", n)
 		return pe.p, nil
 	}
 	p, err := pp.drv.NewPage()
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("PagePool.Get: allocated #%d", len(pp.pages))
+	infof("PagePool.Get: allocated #%d", len(pp.pages))
 	pe = &pageEntry{p: p, u: true}
 	pp.pages = append(pp.pages, pe)
 	return pe.p, nil
@@ -72,13 +71,13 @@ func (pp *PagePool) Put(p *agouti.Page) {
 	for i, pe := range pp.pages {
 		if pe.p == p {
 			pe.u = false
-			log.Printf("PagePool.Put: released #%d", i)
+			infof("PagePool.Put: released #%d", i)
 			pp.c.Broadcast()
 			return
 		}
 	}
 
-	log.Print("PagePool.Put: unmanaged page")
+	warnf("PagePool.Put: unmanaged page")
 }
 
 func (pp *PagePool) freePage() (*pageEntry, int) {
@@ -102,18 +101,18 @@ func (pp *PagePool) activePage() int {
 
 // Close closes all pages and finish the pool.
 func (pp *PagePool) Close() {
-	log.Printf("PagePool.Close: waiting")
+	infof("PagePool.Close: waiting")
 	pp.c.L.Lock()
 	pp.err = Closed
 	for pp.activePage() != 0 {
 		pp.c.Wait()
 	}
 	defer pp.c.L.Unlock()
-	log.Printf("PagePool.Close: closing")
+	infof("PagePool.Close: closing")
 
 	for _, pe := range pp.pages {
 		pe.p.Destroy()
 	}
 	pp.pages = nil
-	log.Printf("PagePool.Close: closed")
+	infof("PagePool.Close: closed")
 }
