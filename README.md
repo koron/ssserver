@@ -40,11 +40,14 @@ Name        |Description
 `full`      |Full page screenshot. Ignore `h`, `sX` and `sY` when set.
 `save`      |Show save as dialog in browser.  Imply `Content-Disposition: attachment`
 
-## Options
+## Server Options
 
 Name        |Description
 ------------|---------------------------------------------------------------
 `-addr`     |Server listen address (default: ":3000")
+`-driver`   |WebDriver name (default: "chrome")
+`-maxpages` |Max number of browser instances (default: 4)
+`-v`        |Verbose logging
 
 ## Examples
 
