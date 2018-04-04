@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/sclevine/agouti"
@@ -53,19 +54,14 @@ func serve(addr string) error {
 	pool := NewPool(drv, maxPages)
 
 	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		for {
-			s := <-sig
-			if s == os.Interrupt {
-				break
-			}
-		}
+		_ = <-sig
 		signal.Stop(sig)
 		pool.Close()
 		drv.Stop()
 		os.Exit(0)
 	}()
-	signal.Notify(sig, os.Interrupt)
 
 	return http.ListenAndServe(addr, newHandler(pool))
 }
