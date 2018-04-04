@@ -242,12 +242,18 @@ func main() {
 	var (
 		addr    string
 		verbose bool
+		showVer bool
 	)
 	flag.StringVar(&addr, "addr", ":3000", "server listen address")
 	flag.StringVar(&driverName, "driver", "chrome", "web driver name")
 	flag.IntVar(&maxPages, "maxpages", 4, "max num of pages")
+	flag.BoolVar(&showVer, "version", false, "show version")
 	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.Parse()
+	if showVer {
+		fmt.Println("ssserver version:", version)
+		os.Exit(1)
+	}
 	if verbose {
 		infoL = log.New(os.Stdout, "", log.LstdFlags)
 	}

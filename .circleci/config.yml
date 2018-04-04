@@ -7,5 +7,6 @@ jobs:
     steps:
       - checkout
       - run: go get -v -t -d ./...
-      - run: go build -v -i .
       - run: go test -v ./...
+      - run: go build -v -i .
+      - run: ./ssserver -version
