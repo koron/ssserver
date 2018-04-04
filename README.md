@@ -1,5 +1,8 @@
 # Web screenshot server
 
+[![CircleCI](https://circleci.com/gh/koron/ssserver.svg?style=svg)](https://circleci.com/gh/koron/ssserver)
+[![Go Report Card](https://goreportcard.com/badge/github.com/koron/ssserver)](https://goreportcard.com/report/github.com/koron/ssserver)
+
 Install the command.
 
     $ go get -u github.com/koron/ssserver

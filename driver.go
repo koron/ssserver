@@ -44,6 +44,7 @@ func firefoxDriver() *agouti.WebDriver {
 	}))
 }
 
+// FirefoxDiver creates a WebDriver of Firefox.
 func FirefoxDiver(options ...agouti.Option) *agouti.WebDriver {
 	var binaryName string
 	if runtime.GOOS == "windows" {

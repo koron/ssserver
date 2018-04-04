@@ -7,8 +7,8 @@ import (
 	"github.com/sclevine/agouti"
 )
 
-// Closed is the error returned by Get when the PagePool is closed already.
-var Closed = errors.New("page pool is closed")
+// ErrClosed is the error returned by Get when the PagePool is closed already.
+var ErrClosed = errors.New("page pool is closed")
 
 type pageEntry struct {
 	u bool
@@ -103,7 +103,7 @@ func (pp *PagePool) activePage() int {
 func (pp *PagePool) Close() {
 	infof("PagePool.Close: waiting")
 	pp.c.L.Lock()
-	pp.err = Closed
+	pp.err = ErrClosed
 	for pp.activePage() != 0 {
 		pp.c.Wait()
 	}
