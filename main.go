@@ -134,6 +134,7 @@ func scrollTo(page *agouti.Page, x, y int) error {
 	if x == 0 && y == 0 {
 		return nil
 	}
+	infof("window.scrollTo(%d, %d)", x, y)
 	return page.RunScript("window.scrollTo(x, y)", map[string]interface{}{
 		"x": x,
 		"y": y,
@@ -141,6 +142,7 @@ func scrollTo(page *agouti.Page, x, y int) error {
 }
 
 func getScreenshot(page *agouti.Page, full bool) ([]byte, error) {
+	infof("page.GetScreenshot(), full=%t", full)
 	if !full {
 		return page.Session().GetScreenshot()
 	}
@@ -221,7 +223,9 @@ func openPage(pool *PagePool, p *openParams) (*agouti.Page, error) {
 	if err != nil {
 		return nil, err
 	}
+	infof("page.Size(%d, %d) for %s", p.width, p.height, p.url)
 	page.Size(p.width, p.height)
+	infof("page.Navigate(%s)", p.url)
 	err = page.Navigate(p.url)
 	if err != nil {
 		pool.Put(page)
