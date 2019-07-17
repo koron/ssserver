@@ -252,7 +252,7 @@ func main() {
 	flag.Parse()
 	if showVer {
 		fmt.Println("ssserver version:", version)
-		os.Exit(1)
+		return
 	}
 	if verbose {
 		infoL = log.New(os.Stdout, "", log.LstdFlags)
