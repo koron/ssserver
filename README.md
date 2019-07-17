@@ -3,9 +3,13 @@
 [![CircleCI](https://circleci.com/gh/koron/ssserver.svg?style=svg)](https://circleci.com/gh/koron/ssserver)
 [![Go Report Card](https://goreportcard.com/badge/github.com/koron/ssserver)](https://goreportcard.com/report/github.com/koron/ssserver)
 
-Install the command.
+Install the command with:
 
-    $ go get -u github.com/koron/ssserver
+    $ GO111MODULE=on go install -v github.com/koron/ssserver
+
+Or:
+
+    $ go get -u -i github.com/koron/ssserver
 
 Assure to install Chrome and Chrome driver.
 
