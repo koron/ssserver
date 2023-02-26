@@ -5,11 +5,7 @@
 
 Install the command with:
 
-    $ GO111MODULE=on go install -v github.com/koron/ssserver
-
-Or:
-
-    $ go get -u -i github.com/koron/ssserver
+    $ go install github.com/koron/ssserver@latest
 
 Assure to install Chrome and Chrome driver.
 
