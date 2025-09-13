@@ -56,7 +56,7 @@ func serve(addr string) error {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		_ = <-sig
+		<-sig
 		signal.Stop(sig)
 		pool.Close()
 		drv.Stop()

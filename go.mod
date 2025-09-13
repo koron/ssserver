@@ -1,6 +1,6 @@
 module github.com/koron/ssserver
 
-go 1.19
+go 1.24
 
 require github.com/sclevine/agouti v3.0.0+incompatible
 
