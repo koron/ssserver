@@ -1,7 +1,8 @@
 # Web screenshot server
 
-[![CircleCI](https://circleci.com/gh/koron/ssserver.svg?style=svg)](https://circleci.com/gh/koron/ssserver)
-[![Go Report Card](https://goreportcard.com/badge/github.com/koron/ssserver)](https://goreportcard.com/report/github.com/koron/ssserver)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/koron/ssserver)](https://pkg.go.dev/github.com/koron/ssserver)
+[![Actions/Go](https://github.com/koron/ssserver/actions/workflows/go.yml/badge.svg)](https://github.com/koron/ssserver/actions/workflows/go.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/koron/ssserver)
 
 Install the command with:
 
